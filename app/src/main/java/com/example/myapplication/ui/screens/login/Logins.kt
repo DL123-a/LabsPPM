@@ -1,4 +1,4 @@
-package com.example.myapplication.ui.screens
+package com.example.myapplication.ui.screens.login
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -18,8 +18,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.myapplication.R
 import com.example.myapplication.ui.theme.MyApplicationTheme
-
-
 
 @Composable
 fun LoginScreen(
@@ -64,6 +62,7 @@ fun LoginScreen(
         )
     }
 }
+
 @Preview(
     showBackground = true,
     showSystemUi = true)
