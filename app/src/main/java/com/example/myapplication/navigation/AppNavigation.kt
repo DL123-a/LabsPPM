@@ -103,14 +103,9 @@ fun AppNavigation() {
             }
 
             // CHARACTER DETAILS
-            composable<CharacterDetails> { backStackEntry ->
-
-                val characterDetails =
-                    backStackEntry.toRoute<CharacterDetails>()
+            composable<CharacterDetails> {
 
                 CharacterDetailsScreen(
-                    characterId = characterDetails.id,
-
                     onBackClick = {
                         navController.popBackStack()
                     }
@@ -178,14 +173,9 @@ fun AppNavigation() {
             }
 
             // LOCATION DETAILS
-            composable<LocationDetails> { backStackEntry ->
-
-                val locationDetails =
-                    backStackEntry.toRoute<LocationDetails>()
+            composable<LocationDetails> {
 
                 LocationDetailsScreen(
-                    locationId = locationDetails.id,
-
                     onBackClick = {
                         navController.popBackStack()
                     }

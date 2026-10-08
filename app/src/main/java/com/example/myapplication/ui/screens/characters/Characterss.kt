@@ -21,7 +21,17 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.myapplication.data.Character
-import com.example.myapplication.data.CharacterDb
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.getValue
+import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material3.Icon
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,7 +39,8 @@ fun CharactersScreen(
     onCharacterClick: (Int) -> Unit,
     bottomBar: @Composable () -> Unit
 ) {
-    val characters = CharacterDb().getAllCharacters()
+    val viewModel: CharactersViewModel = viewModel()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -42,19 +53,73 @@ fun CharactersScreen(
         bottomBar = bottomBar
     ) { innerPadding ->
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            items(characters) { character ->
+        if (state.isLoading) {
 
-                CharacterItem(
-                    character = character,
-                    onClick = {
-                        onCharacterClick(character.id)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .clickable {
+                        viewModel.setError()
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CircularProgressIndicator()
+                    Text("Cargando")
+                }
+            }
+
+        }else if (state.hasError) {
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ErrorOutline,
+                        contentDescription = "Error",
+                        modifier = Modifier.size(40.dp)
+                    )
+
+                    Text("Error al obtener listado de personajes.")
+
+                    Text("Intenta de nuevo")
+
+                    Button(
+                        onClick = {
+                            viewModel.retry()
+                        }
+                    ) {
+                        Text("Reintentar")
                     }
-                )
+                }
+            }
+
+        } else {
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                items(state.data) { character ->
+                    CharacterItem(
+                        character = character,
+                        onClick = {
+                            onCharacterClick(character.id)
+                        }
+                    )
+                }
             }
         }
     }
