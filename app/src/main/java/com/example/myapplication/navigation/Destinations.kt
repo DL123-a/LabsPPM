@@ -31,3 +31,6 @@ data class LocationDetails(
 
 @Serializable
 object Profile
+
+@Serializable
+object SessionCheck

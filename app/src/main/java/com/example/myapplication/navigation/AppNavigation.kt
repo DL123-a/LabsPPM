@@ -14,34 +14,85 @@ import com.example.myapplication.ui.screens.locations.LocationDetailsScreen
 import com.example.myapplication.ui.screens.locations.LocationsScreen
 import com.example.myapplication.ui.screens.login.LoginScreen
 import com.example.myapplication.ui.screens.profile.ProfileScreen
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import com.example.myapplication.data.UserPreferences
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.LaunchedEffect
+import com.example.myapplication.ui.screens.session.SessionCheckScreen
+import kotlinx.coroutines.flow.first
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 
 @Composable
 fun AppNavigation() {
 
     val navController = rememberNavController()
 
+    val context = LocalContext.current.applicationContext
+    val userPreferences = remember(context) {
+        UserPreferences(context)
+    }
+    val coroutineScope = rememberCoroutineScope()
+
     NavHost(
         navController = navController,
-        startDestination = Login
+        startDestination = SessionCheck
     ) {
+
+        // SESSION CHECK
+        composable<SessionCheck> {
+
+            LaunchedEffect(Unit) {
+
+                val savedName = userPreferences.userName.first()
+
+                if (savedName.isNullOrBlank()) {
+
+                    navController.navigate(Login) {
+                        popUpTo<SessionCheck> {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+
+                } else {
+
+                    navController.navigate(CharactersGraph) {
+                        popUpTo<SessionCheck> {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
+            }
+
+            SessionCheckScreen()
+        }
+
+
 
         // LOGIN
         composable<Login> {
-
             LoginScreen(
-                onStartClick = {
+                onStartClick = { name ->
 
-                    navController.navigate(CharactersGraph) {
+                    coroutineScope.launch {
 
-                        popUpTo(
-                            navController.graph.findStartDestination().id
-                        ) {
-                            inclusive = true
+                        userPreferences.saveName(name)
+
+                        navController.navigate(CharactersGraph) {
+                            popUpTo<Login> {
+                                inclusive = true
+                            }
                         }
                     }
                 }
+
             )
         }
+
 
         // CHARACTERS GRAPH
         navigation<CharactersGraph>(
@@ -183,25 +234,33 @@ fun AppNavigation() {
             }
         }
 
+
         // PROFILE
         composable<Profile> {
 
+            val userName by userPreferences.userName.collectAsState(
+                initial = null
+            )
+
             ProfileScreen(
+                userName = userName.orEmpty(),
 
                 onLogoutClick = {
 
-                    navController.navigate(Login) {
+                    coroutineScope.launch {
 
-                        popUpTo(
-                            navController.graph.id
-                        ) {
-                            inclusive = true
+                        userPreferences.clearName()
+
+                        navController.navigate(Login) {
+                            popUpTo(navController.graph.id) {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
                         }
                     }
                 },
 
                 bottomBar = {
-
                     BottomNavigationBar(
                         selectedItem = "profile",
 
@@ -240,5 +299,6 @@ fun AppNavigation() {
                 }
             )
         }
+
     }
 }

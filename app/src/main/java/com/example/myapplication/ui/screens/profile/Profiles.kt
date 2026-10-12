@@ -1,3 +1,4 @@
+
 package com.example.myapplication.ui.screens.profile
 
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
+    userName: String,
     onLogoutClick: () -> Unit,
     bottomBar: @Composable () -> Unit
 ) {
@@ -44,7 +46,6 @@ fun ProfileScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-
             Icon(
                 imageVector = Icons.Default.AccountCircle,
                 contentDescription = "Profile picture",
@@ -56,7 +57,7 @@ fun ProfileScreen(
             )
 
             Text(
-                text = "Daniel Leal"
+                text = userName
             )
 
             Spacer(
