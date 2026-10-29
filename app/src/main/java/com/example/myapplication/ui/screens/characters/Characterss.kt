@@ -1,37 +1,45 @@
+
 package com.example.myapplication.ui.screens.characters
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
-import com.example.myapplication.data.Character
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.foundation.layout.Box
-import androidx.compose.runtime.getValue
-import androidx.compose.material3.Button
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material3.Icon
-
-
+import coil3.compose.AsyncImage
+import com.example.myapplication.data.Character
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +49,10 @@ fun CharactersScreen(
 ) {
     val viewModel: CharactersViewModel = viewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    var showFavoritesOnly by rememberSaveable {
+        mutableStateOf(false)
+    }
 
     Scaffold(
         topBar = {
@@ -73,7 +85,7 @@ fun CharactersScreen(
                 }
             }
 
-        }else if (state.hasError) {
+        } else if (state.hasError) {
 
             Box(
                 modifier = Modifier
@@ -107,18 +119,78 @@ fun CharactersScreen(
 
         } else {
 
-            LazyColumn(
+            val filteredCharacters = if (showFavoritesOnly) {
+                state.data.filter { it.isFavorite }
+            } else {
+                state.data
+            }
+
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                items(state.data) { character ->
-                    CharacterItem(
-                        character = character,
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+
+                    FilterChip(
+                        selected = !showFavoritesOnly,
                         onClick = {
-                            onCharacterClick(character.id)
+                            showFavoritesOnly = false
+                        },
+                        label = {
+                            Text("Todos")
                         }
                     )
+
+                    FilterChip(
+                        selected = showFavoritesOnly,
+                        onClick = {
+                            showFavoritesOnly = true
+                        },
+                        label = {
+                            Text("Favoritos")
+                        }
+                    )
+                }
+
+                if (filteredCharacters.isEmpty()) {
+
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("No hay elementos a mostrar")
+                    }
+
+                } else {
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(
+                            items = filteredCharacters,
+                            key = { it.id }
+                        ) { character ->
+
+                            CharacterItem(
+                                character = character,
+
+                                onClick = {
+                                    onCharacterClick(character.id)
+                                },
+
+                                onFavoriteClick = {
+                                    viewModel.toggleFavorite(character)
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -128,7 +200,8 @@ fun CharactersScreen(
 @Composable
 fun CharacterItem(
     character: Character,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onFavoriteClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -148,7 +221,9 @@ fun CharacterItem(
             contentScale = ContentScale.Crop
         )
 
-        Column {
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
             Text(
                 text = character.name
             )
@@ -159,6 +234,28 @@ fun CharacterItem(
 
             Text(
                 text = character.status
+            )
+        }
+
+        IconButton(
+            onClick = onFavoriteClick
+        ) {
+            Icon(
+                imageVector = if (character.isFavorite) {
+                    Icons.Default.Favorite
+                } else {
+                    Icons.Default.FavoriteBorder
+                },
+                contentDescription = if (character.isFavorite) {
+                    "Quitar de favoritos"
+                } else {
+                    "Agregar a favoritos"
+                },
+                tint = if (character.isFavorite) {
+                    Color.Red
+                } else {
+                    Color.Gray
+                }
             )
         }
     }

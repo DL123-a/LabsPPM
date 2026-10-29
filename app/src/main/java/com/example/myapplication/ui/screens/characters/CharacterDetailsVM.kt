@@ -1,17 +1,22 @@
+
 package com.example.myapplication.ui.screens.characters
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.example.myapplication.data.Character
-import com.example.myapplication.data.CharacterDb
+import com.example.myapplication.data.mappers.toModel
+import com.example.myapplication.data.room.DatabaseProvider
 import com.example.myapplication.navigation.CharacterDetails
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 data class CharacterDetailsState(
@@ -21,15 +26,21 @@ data class CharacterDetailsState(
 )
 
 class CharacterDetailsViewModel(
+    application: Application,
     savedStateHandle: SavedStateHandle
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private val characterId: Int =
         savedStateHandle.toRoute<CharacterDetails>().id
 
-    private val _state = MutableStateFlow(CharacterDetailsState())
+    private val characterDao =
+        DatabaseProvider.getDatabase(application).characterDao()
 
-    val state: StateFlow<CharacterDetailsState> = _state.asStateFlow()
+    private val _state =
+        MutableStateFlow(CharacterDetailsState())
+
+    val state: StateFlow<CharacterDetailsState> =
+        _state.asStateFlow()
 
     private var loadJob: Job? = null
 
@@ -39,15 +50,30 @@ class CharacterDetailsViewModel(
 
     private fun loadCharacter() {
         loadJob = viewModelScope.launch {
-            delay(2000)
+            try {
+                delay(2000)
 
-            val character = CharacterDb().getCharacterById(characterId)
+                characterDao.getCharacterById(characterId)
+                    .collect { entity ->
 
-            _state.value = CharacterDetailsState(
-                isLoading = false,
-                data = character,
-                hasError = character == null
-            )
+                        val character = entity?.toModel()
+
+                        _state.value = CharacterDetailsState(
+                            isLoading = false,
+                            data = character,
+                            hasError = character == null
+                        )
+                    }
+
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.value = CharacterDetailsState(
+                    isLoading = false,
+                    data = null,
+                    hasError = true
+                )
+            }
         }
     }
 
@@ -70,4 +96,26 @@ class CharacterDetailsViewModel(
 
         loadCharacter()
     }
+
+
+
+
+    fun toggleFavorite() {
+        val character = _state.value.data ?: return
+
+        viewModelScope.launch {
+            try {
+                characterDao.updateFavorite(
+                    id = character.id,
+                    isFavorite = !character.isFavorite
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+
+            }
+        }
+    }
 }
+
+

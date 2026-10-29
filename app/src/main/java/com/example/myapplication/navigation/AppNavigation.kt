@@ -1,12 +1,22 @@
 package com.example.myapplication.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
+import androidx.room.withTransaction
+import com.example.myapplication.data.UserPreferences
+import com.example.myapplication.data.initialSync
+import com.example.myapplication.data.room.DatabaseProvider
 import com.example.myapplication.ui.components.BottomNavigationBar
 import com.example.myapplication.ui.screens.characters.CharacterDetailsScreen
 import com.example.myapplication.ui.screens.characters.CharactersScreen
@@ -14,16 +24,11 @@ import com.example.myapplication.ui.screens.locations.LocationDetailsScreen
 import com.example.myapplication.ui.screens.locations.LocationsScreen
 import com.example.myapplication.ui.screens.login.LoginScreen
 import com.example.myapplication.ui.screens.profile.ProfileScreen
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalContext
-import com.example.myapplication.data.UserPreferences
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.LaunchedEffect
 import com.example.myapplication.ui.screens.session.SessionCheckScreen
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavigation() {
@@ -31,9 +36,15 @@ fun AppNavigation() {
     val navController = rememberNavController()
 
     val context = LocalContext.current.applicationContext
+
     val userPreferences = remember(context) {
         UserPreferences(context)
     }
+
+    val database = remember(context) {
+        DatabaseProvider.getDatabase(context)
+    }
+
     val coroutineScope = rememberCoroutineScope()
 
     NavHost(
@@ -45,7 +56,6 @@ fun AppNavigation() {
         composable<SessionCheck> {
 
             LaunchedEffect(Unit) {
-
                 val savedName = userPreferences.userName.first()
 
                 if (savedName.isNullOrBlank()) {
@@ -71,28 +81,47 @@ fun AppNavigation() {
             SessionCheckScreen()
         }
 
-
-
         // LOGIN
         composable<Login> {
+
+            var isLoading by remember {
+                mutableStateOf(false)
+            }
+
             LoginScreen(
+                isLoading = isLoading,
+
                 onStartClick = { name ->
 
-                    coroutineScope.launch {
+                    if (!isLoading) {
 
-                        userPreferences.saveName(name)
+                        isLoading = true
 
-                        navController.navigate(CharactersGraph) {
-                            popUpTo<Login> {
-                                inclusive = true
+                        coroutineScope.launch {
+
+                            try {
+                                delay(4000)
+
+                                initialSync(database)
+
+                                userPreferences.saveName(name)
+
+                                navController.navigate(CharactersGraph) {
+                                    popUpTo<Login> {
+                                        inclusive = true
+                                    }
+                                }
+
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                isLoading = false
                             }
                         }
                     }
                 }
-
             )
         }
-
 
         // CHARACTERS GRAPH
         navigation<CharactersGraph>(
@@ -129,7 +158,6 @@ fun AppNavigation() {
                                     popUpTo(CharactersGraph) {
                                         saveState = true
                                     }
-
                                     launchSingleTop = true
                                     restoreState = true
                                 }
@@ -143,7 +171,6 @@ fun AppNavigation() {
                                     popUpTo(CharactersGraph) {
                                         saveState = true
                                     }
-
                                     launchSingleTop = true
                                     restoreState = true
                                 }
@@ -195,7 +222,6 @@ fun AppNavigation() {
                                     popUpTo(CharactersGraph) {
                                         saveState = true
                                     }
-
                                     launchSingleTop = true
                                     restoreState = true
                                 }
@@ -213,7 +239,6 @@ fun AppNavigation() {
                                     popUpTo(CharactersGraph) {
                                         saveState = true
                                     }
-
                                     launchSingleTop = true
                                     restoreState = true
                                 }
@@ -234,7 +259,6 @@ fun AppNavigation() {
             }
         }
 
-
         // PROFILE
         composable<Profile> {
 
@@ -249,18 +273,39 @@ fun AppNavigation() {
 
                     coroutineScope.launch {
 
-                        userPreferences.clearName()
+                        try {
+                            // ELIMINAR DATOS DE ROOM
+                            database.withTransaction {
 
-                        navController.navigate(Login) {
-                            popUpTo(navController.graph.id) {
-                                inclusive = true
+                                database.characterDao()
+                                    .deleteAllCharacters()
+
+                                database.locationDao()
+                                    .deleteAllLocations()
                             }
-                            launchSingleTop = true
+
+                            // ELIMINAR NOMBRE DE DATASTORE
+                            userPreferences.clearName()
+
+                            // REGRESAR AL LOGIN
+                            navController.navigate(Login) {
+                                popUpTo(navController.graph.id) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
+
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            // Si falla la limpieza, no navegamos
+                            // para evitar un cierre de sesión incompleto.
                         }
                     }
                 },
 
                 bottomBar = {
+
                     BottomNavigationBar(
                         selectedItem = "profile",
 
@@ -272,7 +317,6 @@ fun AppNavigation() {
                                 popUpTo(CharactersGraph) {
                                     saveState = true
                                 }
-
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -286,19 +330,17 @@ fun AppNavigation() {
                                 popUpTo(CharactersGraph) {
                                     saveState = true
                                 }
-
                                 launchSingleTop = true
                                 restoreState = true
                             }
                         },
 
                         onProfileClick = {
-
+                            // Ya estamos en Profile
                         }
                     )
                 }
             )
         }
-
     }
 }

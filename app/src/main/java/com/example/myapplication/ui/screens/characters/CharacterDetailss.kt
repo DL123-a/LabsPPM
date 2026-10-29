@@ -14,6 +14,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -130,6 +133,7 @@ fun CharacterDetailsScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
+
                     AsyncImage(
                         model = character.image,
                         contentDescription = character.name,
@@ -144,10 +148,37 @@ fun CharacterDetailsScreen(
                         fontWeight = FontWeight.Bold
                     )
 
+                    // BOTON DE FAVORITOS
+                    IconButton(
+                        onClick = {
+                            viewModel.toggleFavorite()
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (character.isFavorite) {
+                                Icons.Default.Favorite
+                            } else {
+                                Icons.Default.FavoriteBorder
+                            },
+                            contentDescription = if (character.isFavorite) {
+                                "Quitar de favoritos"
+                            } else {
+                                "Agregar a favoritos"
+                            },
+                            tint = if (character.isFavorite) {
+                                Color.Red
+                            } else {
+                                Color.Gray
+                            },
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+
                         CharacterDetailRow(
                             label = "Species:",
                             value = character.species

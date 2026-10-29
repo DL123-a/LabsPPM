@@ -1,4 +1,3 @@
-
 package com.example.myapplication.ui.screens.login
 
 import androidx.compose.foundation.Image
@@ -10,7 +9,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,17 +22,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.myapplication.R
 import com.example.myapplication.ui.theme.MyApplicationTheme
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.graphics.Color
+
 @Composable
 fun LoginScreen(
-    onStartClick: (String) -> Unit
+    onStartClick: (String) -> Unit,
+    isLoading: Boolean = false
 ) {
     var name by rememberSaveable {
         mutableStateOf("")
@@ -55,16 +58,15 @@ fun LoginScreen(
                 modifier = Modifier.width(350.dp)
             )
 
-
-
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("Nombre") },
                 placeholder = { Text("Ingresa tu nombre") },
                 singleLine = true,
+                enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth(),
-                textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
+                textStyle = LocalTextStyle.current.copy(
                     color = Color.Black
                 ),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -78,16 +80,25 @@ fun LoginScreen(
                 )
             )
 
-
-
             Button(
                 onClick = {
-                    onStartClick(name.trim())
+                    if (!isLoading) {
+                        onStartClick(name.trim())
+                    }
                 },
-                enabled = name.isNotBlank(),
+                enabled = name.isNotBlank() && !isLoading,
                 modifier = Modifier.width(220.dp)
             ) {
-                Text("Empezar")
+                Text(
+                    if (isLoading) "Sincronizando..."
+                    else "Empezar"
+                )
+            }
+
+            if (isLoading) {
+                CircularProgressIndicator()
+
+                Text("Guardando datos...")
             }
         }
 
