@@ -6,8 +6,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.example.myapplication.data.Location
-import com.example.myapplication.data.mappers.toModel
-import com.example.myapplication.data.room.DatabaseProvider
+import com.example.myapplication.data.repository.Repositories
+
 import com.example.myapplication.navigation.LocationDetails
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -32,8 +32,7 @@ class LocationDetailsViewModel(
     private val locationId: Int =
         savedStateHandle.toRoute<LocationDetails>().id
 
-    private val locationDao =
-        DatabaseProvider.getDatabase(application).locationDao()
+    private val repository = Repositories.locations(application)
 
     private val _state =
         MutableStateFlow(LocationDetailsState())
@@ -52,10 +51,8 @@ class LocationDetailsViewModel(
             try {
                 delay(2000)
 
-                locationDao.getLocationById(locationId)
-                    .collect { entity ->
-
-                        val location = entity?.toModel()
+                repository.getById(locationId)
+                    .collect { location ->
 
                         _state.value = LocationDetailsState(
                             isLoading = false,
@@ -94,5 +91,9 @@ class LocationDetailsViewModel(
         _state.value = LocationDetailsState()
 
         loadLocation()
+    }
+    fun toggleFavorite() {
+        val location = _state.value.data ?: return
+        viewModelScope.launch { repository.setFavorite(location.id, !location.isFavorite) }
     }
 }

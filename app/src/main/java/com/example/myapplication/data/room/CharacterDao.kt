@@ -24,6 +24,18 @@ interface CharacterDao {
     @Query("UPDATE characters SET isFavorite = :isFavorite WHERE id = :id")
     suspend fun updateFavorite(id: Int, isFavorite: Boolean)
 
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertCharacter(character: CharacterEntity)
+
+    @androidx.room.Update
+    suspend fun updateCharacter(character: CharacterEntity)
+
+    @Query("DELETE FROM characters WHERE id = :id")
+    suspend fun deleteCharacter(id: Int)
+
+    @Query("SELECT MIN(id) FROM characters")
+    suspend fun minId(): Int?
+
     @Query("DELETE FROM characters")
     suspend fun deleteAllCharacters()
 }

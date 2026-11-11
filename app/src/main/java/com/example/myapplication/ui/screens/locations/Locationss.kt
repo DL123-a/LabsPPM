@@ -13,7 +13,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -23,6 +28,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -38,6 +46,8 @@ fun LocationsScreen(
 ) {
     val viewModel: LocationsViewModel = viewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    var filter by rememberSaveable { mutableIntStateOf(0) }
 
     Scaffold(
         topBar = {
@@ -106,20 +116,31 @@ fun LocationsScreen(
         } else {
 
             // DATA
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
-                items(state.data) { location ->
-                    LocationItem(
-                        location = location,
-                        onClick = {
-                            onLocationClick(location.id)
+            Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(horizontal = 12.dp)) {
+                    listOf("Todas", "Favoritas", "No favoritas").forEachIndexed { index, title ->
+                        FilterChip(selected = filter == index, onClick = { filter = index }, label = { Text(title) })
+                    }
+                }
+                val filtered = state.data.filter { filter == 0 || (filter == 1 && it.isFavorite) || (filter == 2 && !it.isFavorite) }
+                if (filtered.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No hay elementos a mostrar") }
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(filtered, key = { it.id }) { location ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    LocationItem(location = location, onClick = { onLocationClick(location.id) })
+                                }
+                                IconButton(onClick = { viewModel.toggleFavorite(location) }) {
+                                    Icon(if (location.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                        contentDescription = "Favorito",
+                                        tint = if (location.isFavorite) androidx.compose.ui.graphics.Color.Red else androidx.compose.ui.graphics.Color.Gray)
+                                }
+                            }
+                            HorizontalDivider()
                         }
-                    )
-
-                    HorizontalDivider()
+                    }
                 }
             }
         }

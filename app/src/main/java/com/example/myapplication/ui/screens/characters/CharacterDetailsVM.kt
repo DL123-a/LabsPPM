@@ -7,8 +7,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.example.myapplication.data.Character
-import com.example.myapplication.data.mappers.toModel
-import com.example.myapplication.data.room.DatabaseProvider
+import com.example.myapplication.data.repository.Repositories
+
 import com.example.myapplication.navigation.CharacterDetails
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -33,8 +33,7 @@ class CharacterDetailsViewModel(
     private val characterId: Int =
         savedStateHandle.toRoute<CharacterDetails>().id
 
-    private val characterDao =
-        DatabaseProvider.getDatabase(application).characterDao()
+    private val repository = Repositories.characters(application)
 
     private val _state =
         MutableStateFlow(CharacterDetailsState())
@@ -53,10 +52,8 @@ class CharacterDetailsViewModel(
             try {
                 delay(2000)
 
-                characterDao.getCharacterById(characterId)
-                    .collect { entity ->
-
-                        val character = entity?.toModel()
+                repository.getById(characterId)
+                    .collect { character ->
 
                         _state.value = CharacterDetailsState(
                             isLoading = false,
@@ -105,15 +102,25 @@ class CharacterDetailsViewModel(
 
         viewModelScope.launch {
             try {
-                characterDao.updateFavorite(
+                repository.setFavorite(
                     id = character.id,
-                    isFavorite = !character.isFavorite
+                    favorite = !character.isFavorite
                 )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
 
             }
+        }
+    }
+    fun updateCharacter(character: Character) {
+        viewModelScope.launch { repository.update(character) }
+    }
+
+    fun deleteCharacter(onDeleted: () -> Unit) {
+        viewModelScope.launch {
+            repository.delete(characterId)
+            onDeleted()
         }
     }
 }

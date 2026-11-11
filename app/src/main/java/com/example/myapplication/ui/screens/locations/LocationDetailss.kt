@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -127,6 +129,12 @@ fun LocationDetailsScreen(
                         text = location.name,
                         modifier = Modifier.padding(bottom = 24.dp)
                     )
+
+                    IconButton(onClick = { viewModel.toggleFavorite() }) {
+                        Icon(if (location.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Favorito",
+                            tint = if (location.isFavorite) androidx.compose.ui.graphics.Color.Red else androidx.compose.ui.graphics.Color.Gray)
+                    }
 
                     LocationInformationRow(
                         label = "ID:",

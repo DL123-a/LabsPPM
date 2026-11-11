@@ -4,8 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.Location
-import com.example.myapplication.data.mappers.toModel
-import com.example.myapplication.data.room.DatabaseProvider
+import com.example.myapplication.data.repository.Repositories
+
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -25,8 +25,7 @@ class LocationsViewModel(
     application: Application
 ) : AndroidViewModel(application) {
 
-    private val locationDao =
-        DatabaseProvider.getDatabase(application).locationDao()
+    private val repository = Repositories.locations(application)
 
     private val _state = MutableStateFlow(LocationsState())
 
@@ -44,9 +43,7 @@ class LocationsViewModel(
             try {
                 delay(4000)
 
-                locationDao.getAllLocations().collect { entities ->
-
-                    val locations = entities.map { it.toModel() }
+                repository.getAll().collect { locations ->
 
                     _state.value = LocationsState(
                         isLoading = false,
@@ -85,5 +82,8 @@ class LocationsViewModel(
         _state.value = LocationsState()
 
         loadLocations()
+    }
+    fun toggleFavorite(location: Location) {
+        viewModelScope.launch { repository.setFavorite(location.id, !location.isFavorite) }
     }
 }

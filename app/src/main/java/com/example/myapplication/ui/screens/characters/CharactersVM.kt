@@ -4,8 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.Character
-import com.example.myapplication.data.mappers.toModel
-import com.example.myapplication.data.room.DatabaseProvider
+import com.example.myapplication.data.repository.Repositories
+
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -25,8 +25,7 @@ class CharactersViewModel(
     application: Application
 ) : AndroidViewModel(application) {
 
-    private val characterDao =
-        DatabaseProvider.getDatabase(application).characterDao()
+    private val repository = Repositories.characters(application)
 
     private val _state = MutableStateFlow(CharactersState())
 
@@ -43,9 +42,7 @@ class CharactersViewModel(
             try {
                 delay(4000)
 
-                characterDao.getAllCharacters().collect { entities ->
-
-                    val characters = entities.map { it.toModel() }
+                repository.getAll().collect { characters ->
 
                     _state.value = CharactersState(
                         isLoading = false,
@@ -89,9 +86,9 @@ class CharactersViewModel(
     fun toggleFavorite(character: Character) {
         viewModelScope.launch {
             try {
-                characterDao.updateFavorite(
+                repository.setFavorite(
                     id = character.id,
-                    isFavorite = !character.isFavorite
+                    favorite = !character.isFavorite
                 )
             } catch (e: CancellationException) {
                 throw e
@@ -100,4 +97,14 @@ class CharactersViewModel(
             }
         }
     }
+    fun createCharacter(character: Character) {
+        viewModelScope.launch {
+            try {
+                val id = (state.value.data.minOfOrNull { it.id } ?: 0).coerceAtMost(0) - 1
+                repository.create(character.copy(id = id))
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _state.value = _state.value.copy(hasError = true) }
+        }
+    }
+
 }

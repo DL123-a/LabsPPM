@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -54,11 +55,26 @@ fun CharactersScreen(
         mutableStateOf(false)
     }
 
+    var showCreate by rememberSaveable { mutableStateOf(false) }
+    if (showCreate) {
+        CharacterFormDialog(null, onDismiss = { showCreate = false }, onSave = {
+            viewModel.createCharacter(it)
+            showCreate = false
+        })
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text("Characters")
+                },
+                actions = {
+                    TextButton(
+                        onClick = { showCreate = true }
+                    ) {
+                        Text("+ Crear")
+                    }
                 }
             )
         },
